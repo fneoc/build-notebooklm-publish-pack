@@ -1,0 +1,4 @@
+interface:
+  display_name: "NotebookLM Publish Pack"
+  short_description: "Turn any content into bilingual media publish packs"
+  default_prompt: "Use $build-notebooklm-publish-pack to turn this source content into a bilingual NotebookLM video, infographic, and platform publishing package."
