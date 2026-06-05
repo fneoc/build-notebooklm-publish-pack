@@ -7,6 +7,7 @@
 ## 项目亮点
 
 - 面向 NotebookLM 的源内容预检与长文策略判断
+- 自动创建干净 NotebookLM 笔记本、上传 PDF/companion、触发视频和图片生成
 - 中文 / 英文双语发布包生成
 - 适配视频号、BILIBILI、TikTok、YouTube Shorts、小红书、LinkedIn 的平台文案
 - 7 天复用日历与运营检查单
@@ -25,6 +26,7 @@
 - 识别来源类型，判断内容是新闻、报告、教程、案例、观点还是普通文章
 - 预检网页和文件，判断是否适合 NotebookLM、是否需要源派生 companion
 - 生成 NotebookLM 的中文/英文提示词和 briefing companion
+- 通过浏览器自动化上传来源到干净 NotebookLM 笔记本，校验来源数量，轮询并下载官方视频/信息图
 - 生成平台发布草稿、7 天复用日历和运营检查单
 - 生成比例遮罩图，帮助短视频和信息流封面适配不同平台
 - 审计最终发布包，发现坏媒体、漏文件、命名错误和来源污染
@@ -39,6 +41,8 @@
 - `briefing-companion-en.md`
 - `notebooklm-prompt-zh.txt`
 - `notebooklm-prompt-en.txt`
+- `notebooklm-downloads-manifest.json`
+- `notebooklm-automation-log.json`
 - `content-plan.json`
 - `publish-ops-checklist.md`
 - `repurposing-calendar.md`
@@ -55,7 +59,7 @@
 
 1. 先用 `prepare_source.py` 做预检，判断内容类型、正文长度、图片数和长文模式。
 2. 再用 `draft_pack_plan.py` 生成 briefing companion、NotebookLM prompt、运营日历和平台草稿。
-3. 用 NotebookLM 或本地图像流程产出视频与信息图。
+3. 用浏览器自动化驱动 NotebookLM：创建干净笔记本、上传来源、触发视频/信息图、等待生成、下载官方资产。
 4. 用 `audit_publish_pack.py` 做最终审计，确认文件齐全、媒体可读、来源不污染。
 
 ## 为什么它有用
@@ -80,6 +84,7 @@ scripts/audit_publish_pack.py "<package-folder>" --strict
 ```
 
 如果你在评估一个陌生网站，先加 `--dry-run` 看预检结果，再决定是不是进入 NotebookLM。
+如果要生成官方 NotebookLM 视频和图片，请使用已登录 Google 账号的 Chrome；技能会优先自动上传和下载，只有遇到登录、验证码、文件选择器或生成超时等真实阻塞时才转为人工交接。
 
 ## 示例提示
 

@@ -47,6 +47,60 @@ SOURCE_MARKERS = (
 )
 SUMMARY_MARKERS = ("summary", "script", "摘要", "文案", "briefing-companion", "prompt")
 EXECUTION_MARKERS = ("execution-note", "execution", "执行说明", "preflight")
+OFFICIAL_NOTEBOOKLM_ASSETS = ("video_zh", "video_en", "infographic")
+
+
+OFFICIAL_NOTEBOOKLM_MARKERS = {
+    "video_zh": (
+        "chinese notebooklm mp4",
+        "chinese notebooklm video",
+        "zh notebooklm mp4",
+        "zh notebooklm video",
+        "中文 notebooklm mp4",
+        "中文 notebooklm 视频",
+        "notebooklm 中文视频",
+    ),
+    "video_en": (
+        "english notebooklm mp4",
+        "english notebooklm video",
+        "en notebooklm mp4",
+        "en notebooklm video",
+        "英文 notebooklm mp4",
+        "英文 notebooklm 视频",
+        "notebooklm 英文视频",
+    ),
+    "infographic": (
+        "notebooklm infographic",
+        "notebooklm image",
+        "notebooklm png",
+        "notebooklm 信息图",
+        "notebooklm 图片",
+    ),
+}
+
+
+FALLBACK_NOTEBOOKLM_MARKERS = {
+    "video_zh": (
+        "chinese mp4 is still the locally generated fallback",
+        "chinese notebooklm mp4 is still pending",
+        "zh mp4 is still the locally generated fallback",
+        "中文视频仍为本地",
+        "中文 notebooklm 视频待生成",
+    ),
+    "video_en": (
+        "english mp4 is still the locally generated fallback",
+        "english notebooklm mp4 is still pending",
+        "en mp4 is still the locally generated fallback",
+        "英文视频仍为本地",
+        "英文 notebooklm 视频待生成",
+    ),
+    "infographic": (
+        "infographic is still the locally generated fallback",
+        "notebooklm infographic is still pending",
+        "信息图仍为本地",
+        "notebooklm 信息图待生成",
+    ),
+}
 
 
 def ffprobe(path: Path) -> dict[str, Any] | None:
@@ -187,6 +241,63 @@ def matches_pattern(filename: str, pattern: str) -> bool:
         return False
 
 
+def notebooklm_candidates(asset: str, files: list[Path]) -> list[str]:
+    names = [path.name for path in files]
+    if asset == "video_zh":
+        return [
+            name
+            for name in names
+            if Path(name).suffix.lower() in VIDEO_SUFFIXES
+            and "notebooklm" in name.lower()
+            and ("video-zh" in name.lower() or "-zh" in name.lower() or "中文" in name)
+        ]
+    if asset == "video_en":
+        return [
+            name
+            for name in names
+            if Path(name).suffix.lower() in VIDEO_SUFFIXES
+            and "notebooklm" in name.lower()
+            and ("video-en" in name.lower() or "-en" in name.lower() or "english" in name.lower() or "英文" in name)
+        ]
+    if asset == "infographic":
+        return [
+            name
+            for name in names
+            if Path(name).suffix.lower() in IMAGE_SUFFIXES
+            and ("notebooklm" in name.lower() or "notebooklm" in Path(name).stem.lower())
+        ]
+    raise ValueError(f"Unknown NotebookLM asset: {asset}")
+
+
+def has_any_text_marker(text_blob: str, markers: tuple[str, ...]) -> bool:
+    lower = text_blob.lower()
+    return any(marker.lower() in lower for marker in markers)
+
+
+def official_notebooklm_status(asset: str, files: list[Path], text_blob: str) -> dict[str, Any]:
+    candidates = notebooklm_candidates(asset, files)
+    has_positive_note = has_any_text_marker(text_blob, OFFICIAL_NOTEBOOKLM_MARKERS[asset])
+    has_fallback_note = has_any_text_marker(text_blob, FALLBACK_NOTEBOOKLM_MARKERS[asset])
+
+    if candidates and has_positive_note and not has_fallback_note:
+        status = "verified"
+    elif not candidates:
+        status = "missing"
+    elif has_fallback_note:
+        status = "fallback_or_pending"
+    else:
+        status = "unverified"
+
+    return {
+        "status": status,
+        "candidates": candidates,
+        "note_evidence": {
+            "positive_marker_found": has_positive_note,
+            "fallback_marker_found": has_fallback_note,
+        },
+    }
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("folder", type=Path)
@@ -199,6 +310,13 @@ def main() -> int:
         default=[],
         help="Require at least one file in a category, e.g. sources=source-manifest or publish_files=tiktok.",
     )
+    parser.add_argument(
+        "--expect-official-notebooklm",
+        action="append",
+        choices=OFFICIAL_NOTEBOOKLM_ASSETS,
+        default=[],
+        help="Require a verified NotebookLM-origin asset: video_zh, video_en, or infographic.",
+    )
     parser.add_argument("--strict", action="store_true", help="Exit non-zero when likely deliverables are missing.")
     args = parser.parse_args()
 
@@ -208,7 +326,7 @@ def main() -> int:
     files = sorted([path for path in args.folder.iterdir() if path.is_file()])
     categories = classify(files)
     missing = []
-    for key in ("sources", "videos", "images", "publish_files"):
+    for key in ("sources", "publish_files"):
         if not categories[key]:
             missing.append(key)
     if categories["videos"] and not categories["english_videos"]:
@@ -234,10 +352,26 @@ def main() -> int:
         role_files = categories.get(role, [])
         if not any(matches_pattern(filename, pattern) for filename in role_files):
             missing_file_roles.append({"role": role, "pattern": pattern})
+    official_notebooklm = {
+        asset: official_notebooklm_status(asset, files, text_blob)
+        for asset in OFFICIAL_NOTEBOOKLM_ASSETS
+    }
+    missing_official_notebooklm = [
+        {"asset": asset, **official_notebooklm[asset]}
+        for asset in args.expect_official_notebooklm
+        if official_notebooklm[asset]["status"] != "verified"
+    ]
 
     status = (
         "complete"
-        if not missing and not missing_terms and not source_count_mismatch and not missing_file_roles and not media_errors
+        if (
+            not missing
+            and not missing_terms
+            and not source_count_mismatch
+            and not missing_file_roles
+            and not missing_official_notebooklm
+            and not media_errors
+        )
         else "partial"
     )
     result = {
@@ -249,6 +383,8 @@ def main() -> int:
         "missing_expected_terms": missing_terms,
         "source_count_mismatch": source_count_mismatch,
         "missing_file_roles": missing_file_roles,
+        "official_notebooklm": official_notebooklm,
+        "missing_official_notebooklm": missing_official_notebooklm,
         "media_errors": media_errors,
         "images": images,
         "videos": videos,

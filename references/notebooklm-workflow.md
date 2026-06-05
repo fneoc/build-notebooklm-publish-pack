@@ -6,7 +6,7 @@ Use this reference when the package requires NotebookLM video overviews, infogra
 
 1. Use a brand-new notebook when possible.
 2. Reuse an existing notebook only after checking the visible source count, source title, and language state.
-3. Upload only the source document(s) intended for this package.
+3. Upload only the source document(s) intended for this package, using browser automation by default.
 4. Treat unexpected counts, old titles, or stale generated cards as contamination.
 5. If the package needs separate Chinese and English outputs, prefer separate notebooks or clearly separate language runs.
 
@@ -38,17 +38,31 @@ In long webpage mode:
 ## Video Overview
 
 1. Generate the NotebookLM video overview only after the source count is verified.
-2. Wait for the ready card. If the card stays in a generating state, refresh the same clean notebook before rebuilding.
-3. Prefer NotebookLM's own card menu download path for MP4 files.
-4. If download automation fails, inspect the user's downloads folder and copy the verified MP4 into the package folder.
-5. Verify each MP4 exists and is playable or probeable before claiming success.
+2. Trigger video generation through browser automation; do not leave this as a manual instruction unless automation is blocked.
+3. For long reports, expect video generation to take around 15 minutes. Poll every 60-90 seconds and keep other work moving, such as infographic generation, publish copy, or source audits.
+4. Wait for the ready card. If the card stays in a generating state but the notebook still has the expected clean source count, do not rebuild the source package. Refresh the same clean notebook only after a clearly stale UI state, visible error, or long unresponsive wait.
+5. Prefer NotebookLM's own card menu download path for MP4 files.
+6. Browser download events can time out even when the file lands successfully. After clicking download, inspect the user's downloads folder by modification time before declaring failure.
+7. Copy the verified MP4 into the package folder using the output contract filename.
+8. Verify each MP4 exists and is playable or probeable before claiming success.
 
 ## Infographics
 
-1. Download NotebookLM infographic images when available.
-2. If NotebookLM images are missing, create a local fallback clearly labeled as local or generated.
-3. Preserve readable text. Do not crop captions, headings, or source labels when creating ratio variants.
-4. Use `scripts/make_ratio_masks.py` for vertical and rich-preview masked variants.
+1. Trigger NotebookLM infographic/image generation through browser automation when the UI exposes it.
+2. Download NotebookLM infographic images when available.
+3. If multiple NotebookLM image cards appear, prefer the clearest report-like image and record the card title or downloaded filename.
+4. If download automation is unreliable, inspect the user's downloads folder and validate the newest image with Pillow before copying it into the package.
+5. If NotebookLM images are missing, create a local fallback clearly labeled as local or generated.
+6. Preserve readable text. Do not crop captions, headings, or source labels when creating ratio variants.
+7. Use `scripts/make_ratio_masks.py` for vertical and rich-preview masked variants.
+
+## Official Vs Fallback Assets
+
+1. Treat `*-video-zh-notebooklm.mp4`, `*-video-en-notebooklm.mp4`, and `*-infographic-*.png` as final deliverables only after disk verification.
+2. Do not infer official NotebookLM origin from a filename alone. Local fallback files can temporarily use target filenames while the NotebookLM asset is pending.
+3. When an official NotebookLM image is available, keep either the canonical horizontal file or an explicit `*-infographic-horizontal-notebooklm.png` copy, and record which one is official.
+4. The execution note must say which media are official NotebookLM downloads and which are local fallback, placeholder, post-processed, or still pending.
+5. When official NotebookLM assets are required, run the audit with `--expect-official-notebooklm video_zh`, `--expect-official-notebooklm video_en`, or `--expect-official-notebooklm infographic`.
 
 ## Language Handling
 
@@ -66,4 +80,5 @@ Report a blocker when:
 - A requested video or infographic has not finished generating.
 - The downloaded media cannot be found or verified.
 
-Include what already exists, what was verified, and the next manual step.
+Include what already exists, what was verified, and the blocker recovery step.
+The recovery step should be a real exception such as login, CAPTCHA, permission repair, or waiting for a still-running generation, not the normal upload/generate workflow.

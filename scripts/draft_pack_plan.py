@@ -61,6 +61,45 @@ def brief_source(manifest: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+def decision_gates(source: dict[str, Any], platforms: list[str], languages: list[str]) -> list[dict[str, Any]]:
+    gates: list[dict[str, Any]] = []
+    angles = source.get("angles") or []
+    if len(angles) > 1:
+        gates.append(
+            {
+                "id": "primary_angle",
+                "prompt": "Choose one primary angle for the first publish wave.",
+                "default": angles[0],
+                "options": angles[:5],
+                "why": "The primary angle changes the hook, the NotebookLM emphasis, and the platform drafts.",
+            }
+        )
+    if source.get("package_mode") == "long_report":
+        gates.append(
+            {
+                "id": "notebooklm_mode",
+                "prompt": "Confirm whether to keep the long-report two-source notebook plan or force strict single-source NotebookLM.",
+                "default": "two-source long-report mode",
+                "options": [
+                    "two-source long-report mode",
+                    "strict single-source NotebookLM",
+                ],
+                "why": "Long reports can legitimately use a source-derived briefing companion, but some users prefer strict single-source notebooks.",
+            }
+        )
+    if len(platforms) > 2 and len(languages) > 1:
+        gates.append(
+            {
+                "id": "publish_priority",
+                "prompt": "Confirm which publish surface should be treated as the lead asset.",
+                "default": platforms[0] if platforms else "wechat-video",
+                "options": platforms[:4] if platforms else [],
+                "why": "This helps prioritize cover text, hook length, and which draft should be polished first.",
+            }
+        )
+    return gates
+
+
 def zh_companion(source: dict[str, Any], platforms: list[str]) -> str:
     angles = "\n".join(f"- {angle}" for angle in source["angles"]) or "- key tension"
     first = "\n".join(f"> {p}" for p in source["first_paragraphs"][:5])
@@ -186,6 +225,7 @@ def content_plan(source: dict[str, Any], base: str, platforms: list[str], langua
         "source": source,
         "languages": languages,
         "platforms": platforms,
+        "decision_gates": decision_gates(source, platforms, languages),
         "package_files": {
             "source_manifest": f"{base}-source-manifest.json",
             "source_preflight": f"{base}-source-preflight.txt",
@@ -193,6 +233,8 @@ def content_plan(source: dict[str, Any], base: str, platforms: list[str], langua
             "briefing_companion_en": f"{base}-briefing-companion-en.md",
             "notebooklm_prompt_zh": f"{base}-notebooklm-prompt-zh.txt",
             "notebooklm_prompt_en": f"{base}-notebooklm-prompt-en.txt",
+            "notebooklm_downloads_manifest": f"{base}-notebooklm-downloads-manifest.json",
+            "notebooklm_automation_log": f"{base}-notebooklm-automation-log.json",
             "publish_ops_checklist": f"{base}-publish-ops-checklist.md",
             "repurposing_calendar": f"{base}-repurposing-calendar.md",
             "publish_draft_wechat_video": f"{base}-publish-draft-wechat-video.txt",
@@ -337,6 +379,11 @@ Source: {source['title']}
 
 def ops_checklist(source: dict[str, Any], platforms: list[str]) -> str:
     platform_lines = "\n".join(f"- [ ] {platform}: publish file names match final assets" for platform in platforms)
+    gates = decision_gates(source, platforms, ["zh", "en"])
+    gate_lines = "\n".join(
+        f"- [ ] {gate['prompt']} Default: {gate['default']}. Why: {gate['why']}"
+        for gate in gates
+    ) or "- none"
     risks = "\n".join(f"- {risk}" for risk in source["truncation_risks"]) or "- none detected"
     return f"""# Publish Ops Checklist
 
@@ -351,7 +398,16 @@ def ops_checklist(source: dict[str, Any], platforms: list[str]) -> str:
 - [ ] Source PDF or source document exists.
 - [ ] Source manifest and preflight are saved.
 - [ ] If using a briefing companion, label it as source-derived.
+- [ ] Browser automation is attempted before NotebookLM is reported blocked.
+- [ ] A clean NotebookLM notebook is created or verified empty through browser automation.
+- [ ] Only the intended source file(s) are uploaded automatically.
 - [ ] NotebookLM visible source count equals {source['expected_notebooklm_sources']}.
+- [ ] Video overview generation is triggered through NotebookLM automation.
+- [ ] Infographic/image generation is triggered through NotebookLM automation when the UI exposes it.
+- [ ] For long reports, allow about 15 minutes for video generation and poll every 60-90 seconds before rebuilding.
+- [ ] If a download event times out, check `~/Downloads` by modification time before marking the asset blocked.
+- [ ] NotebookLM automation log records browser surface, notebook URL/title, uploaded filenames, generation status, downloads, and blockers.
+- [ ] Execution note names which video/image files are official NotebookLM downloads and which are local fallback.
 
 ## Content Quality
 
@@ -359,6 +415,10 @@ def ops_checklist(source: dict[str, Any], platforms: list[str]) -> str:
 - [ ] The summary is not a mechanical section-by-section recap.
 - [ ] Chinese and English copy are separately written for their audiences.
 - [ ] Claims are traceable to the original source.
+
+## Decision Gaps
+
+{gate_lines}
 
 ## Platforms
 

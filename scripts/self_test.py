@@ -138,6 +138,22 @@ def add_valid_media(package_dir: Path, base: str) -> None:
     make_mp4(package_dir / f"{base}-video-en-notebooklm.mp4")
 
 
+def add_verified_notebooklm_assets(package_dir: Path, base: str) -> None:
+    Image.new("RGB", (2752, 1536), (42, 114, 134)).save(package_dir / f"{base}-infographic-horizontal-notebooklm.png")
+    make_mp4(package_dir / f"{base}-video-zh-notebooklm.mp4")
+    (package_dir / f"{base}-execution-note.txt").write_text(
+        "\n".join(
+            [
+                "NotebookLM state: visible source count verified before generation.",
+                "Chinese NotebookLM MP4 downloaded from Downloads and copied into the package.",
+                "NotebookLM infographic downloaded from the ready card and verified with Pillow.",
+                "English MP4 is still the locally generated fallback.",
+            ]
+        ),
+        encoding="utf-8",
+    )
+
+
 def audit_complete(package_dir: Path) -> None:
     run(
         [
@@ -152,6 +168,21 @@ def audit_complete(package_dir: Path) -> None:
             "sources=briefing-companion",
             "--expect-file-role",
             "publish_files=bilibili",
+            "--strict",
+        ]
+    )
+
+
+def audit_verified_notebooklm(package_dir: Path) -> None:
+    run(
+        [
+            sys.executable,
+            str(AUDIT),
+            str(package_dir),
+            "--expect-official-notebooklm",
+            "video_zh",
+            "--expect-official-notebooklm",
+            "infographic",
             "--strict",
         ]
     )
@@ -172,7 +203,9 @@ def main() -> int:
         assert html_manifest["source_kind"] == "html"
         assert html_manifest["content_profile"]["content_type"] == "case_study"
         add_valid_media(html_package, "generic")
+        add_verified_notebooklm_assets(html_package, "generic")
         audit_complete(html_package)
+        audit_verified_notebooklm(html_package)
 
         md_source = root / "ops.md"
         md_package = root / "markdown-pack"
@@ -181,11 +214,30 @@ def main() -> int:
         md_manifest = prepare_and_draft(md_source, md_package, "markdown")
         assert md_manifest["source_kind"] == "markdown"
         assert md_manifest["content_profile"]["content_type"] == "tutorial"
+        md_plan = json.loads((md_package / "markdown-content-plan.json").read_text(encoding="utf-8"))
+        assert md_plan["decision_gates"]
+        assert md_plan["decision_gates"][0]["id"] == "primary_angle"
+        assert md_plan["package_files"]["notebooklm_automation_log"] == "markdown-notebooklm-automation-log.json"
+        md_checklist = (md_package / "markdown-publish-ops-checklist.md").read_text(encoding="utf-8")
+        assert "Decision Gaps" in md_checklist
+        assert "Browser automation is attempted before NotebookLM is reported blocked" in md_checklist
+        assert "Video overview generation is triggered through NotebookLM automation" in md_checklist
         assert (md_package / "markdown-repurposing-calendar.md").exists()
         assert (md_package / "markdown-publish-draft-bilibili.txt").exists()
         assert not (md_package / "markdown-publish-bilibili.txt").exists()
         add_valid_media(md_package, "markdown")
         audit_complete(md_package)
+
+        text_only_package = root / "text-only-pack"
+        text_only_package.mkdir()
+        (text_only_package / "text-only-source-manifest.json").write_text(
+            json.dumps({"files": [{"path": "text-only-source-manifest.json", "role": "source_manifest"}]}, ensure_ascii=False),
+            encoding="utf-8",
+        )
+        (text_only_package / "text-only-source-preflight.txt").write_text("NotebookLM\n", encoding="utf-8")
+        (text_only_package / "text-only-briefing-companion-zh.md").write_text("NotebookLM\n", encoding="utf-8")
+        (text_only_package / "text-only-publish-draft-wechat-video.txt").write_text("NotebookLM\n", encoding="utf-8")
+        run([sys.executable, str(AUDIT), str(text_only_package), "--strict"])
 
         pdf_source = root / "report.pdf"
         pdf_source.write_bytes(b"%PDF-1.4\n1 0 obj\n<<>>\nendobj\n%%EOF\n")
@@ -204,6 +256,30 @@ def main() -> int:
         (bad_package / "bad-video-en-notebooklm.mp4").write_bytes(b"not an mp4")
         (bad_package / "bad-infographic.png").write_bytes(b"not a png")
         run([sys.executable, str(AUDIT), str(bad_package), "--strict"], expect_success=False)
+
+        fallback_package = root / "fallback-pack"
+        fallback_package.mkdir()
+        (fallback_package / "fallback-source-manifest.json").write_text(
+            json.dumps({"files": [{"path": "fallback-source-manifest.json", "role": "source_manifest"}]}, ensure_ascii=False),
+            encoding="utf-8",
+        )
+        (fallback_package / "fallback-publish-bilibili.txt").write_text("NotebookLM\n", encoding="utf-8")
+        (fallback_package / "fallback-execution-note.txt").write_text(
+            "English MP4 is still the locally generated fallback.\n",
+            encoding="utf-8",
+        )
+        make_mp4(fallback_package / "fallback-video-en-notebooklm.mp4")
+        run(
+            [
+                sys.executable,
+                str(AUDIT),
+                str(fallback_package),
+                "--expect-official-notebooklm",
+                "video_en",
+                "--strict",
+            ],
+            expect_success=False,
+        )
 
     print("self_test ok")
     return 0

@@ -30,6 +30,8 @@ Use `<base>` as the brand or content slug plus date when available, for example 
 <base>-briefing-companion-en.md
 <base>-notebooklm-prompt-zh.txt
 <base>-notebooklm-prompt-en.txt
+<base>-notebooklm-downloads-manifest.json
+<base>-notebooklm-automation-log.json
 <base>-content-plan.json
 <base>-publish-ops-checklist.md
 <base>-repurposing-calendar.md
@@ -38,6 +40,7 @@ Use `<base>` as the brand or content slug plus date when available, for example 
 <base>-video-zh-notebooklm.mp4
 <base>-video-en-notebooklm.mp4
 <base>-infographic-horizontal.png
+<base>-infographic-horizontal-notebooklm.png
 <base>-infographic-vertical.png
 <base>-infographic-vertical-3x4-mask.png
 <base>-infographic-rich-4x3-mask.png
@@ -58,10 +61,13 @@ The execution note should include:
 
 1. Source inputs and retrieval/capture method.
 2. Source preflight result: title, date, text length, image count, truncation risks, and long-mode decision.
-3. NotebookLM notebook state: expected and visible source count, language, generated cards, and download status.
-4. Media validation: MP4 existence/probe result, image dimensions/aspect ratios.
-5. Platform files generated.
-6. Blockers or manual steps.
+3. NotebookLM automation state: browser surface used, notebook URL/title, expected and visible source count, uploaded filenames, language, generated cards, and download status.
+4. NotebookLM timing: automation start, upload completion, generation start, polling interval, approximate wait time, refresh/retry decisions, and whether work continued on images/copy while video generated.
+5. Download harvesting: ready-card title, original downloaded filename, source folder such as `~/Downloads`, copied package filename, and validation result.
+6. Official-vs-fallback status for each media asset: Chinese video, English video, NotebookLM infographic, local fallback images, and post-processed variants.
+7. Media validation: MP4 existence/probe result, image dimensions/aspect ratios.
+8. Platform files generated.
+9. Blockers and automation recovery steps.
 
 ## Completeness Levels
 
@@ -70,3 +76,5 @@ The execution note should include:
 - `blocked`: source is missing, contaminated, inaccessible, or NotebookLM cannot be used.
 
 Do not label a package `complete` from memory alone.
+When a user specifically requires official NotebookLM media, treat local fallback assets as `partial` until `scripts/audit_publish_pack.py` passes with the relevant `--expect-official-notebooklm` flags.
+Do not mark NotebookLM media as blocked until an automated upload/generation/download attempt has been made or the browser/account state prevents that attempt.

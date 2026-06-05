@@ -14,6 +14,8 @@ Use this reference after source preflight and before NotebookLM generation. The 
 
 Pick 1 primary angle and 1 backup angle before generating media.
 
+If more than one strong angle survives preflight, surface the choice to the user before finalizing the first publish wave. Do not guess when the hook could materially change the title, cover, or NotebookLM emphasis.
+
 Strong primary angles:
 
 1. A clear tension: what changed, broke, accelerated, or became newly possible?

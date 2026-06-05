@@ -30,6 +30,31 @@ TEXT_EXTENSIONS = {".txt", ".md", ".markdown"}
 VIDEO_HOST_KEYWORDS = ("youtube.com", "youtu.be", "bilibili.com", "b23.tv", "vimeo.com", "douyin.com", "tiktok.com")
 SOCIAL_HOST_KEYWORDS = ("x.com", "twitter.com", "weibo.com", "xiaohongshu.com", "xhslink.com", "threads.net", "linkedin.com")
 ARTICLE_HOST_KEYWORDS = ("sohu.com", "medium.com", "substack.com", "mp.weixin.qq.com", "36kr.com", "jiqizhixin.com")
+WEB_PREFIX_NOISE = (
+    "首页",
+    "隐私",
+    "登录",
+    "注册",
+    "搜索",
+    "返回",
+    "上一页",
+    "下一页",
+    "全部",
+    "评论",
+)
+WEB_FOOTER_NOISE_PREFIXES = (
+    "Copyright",
+    "搜狐公司 版权所有",
+    "网站地图",
+    "热门精选",
+    "24小时热文",
+    "还没有人评论过",
+    "评论 全部",
+    "评论 还没有人评论过",
+    "推荐阅读",
+    "抢首评",
+    "阅读原文",
+)
 
 
 def is_url(value: str) -> bool:
@@ -168,6 +193,60 @@ def split_text_paragraphs(source_text: str) -> list[str]:
     if len(paragraphs) <= 1:
         paragraphs = [line.strip() for line in normalized.splitlines() if line.strip()]
     return paragraphs
+
+
+def clean_rendered_paragraph(paragraph: str) -> str | None:
+    value = re.sub(r"\s+", " ", paragraph).strip()
+    if not value:
+        return None
+    for noise in WEB_PREFIX_NOISE:
+        if value == noise:
+            return None
+        prefix = f"{noise} "
+        while value.startswith(prefix):
+            value = value[len(prefix) :].strip()
+            if not value:
+                return None
+    value = re.sub(r"\s*\+订阅\b.*$", "", value).strip()
+    value = re.sub(r"\s*(?:\d{4}[.-]\d{1,2}[.-]\d{1,2}|\d{4}-\d{2}-\d{2})\b.*$", "", value).strip()
+    if not value:
+        return None
+    if any(value.startswith(prefix) for prefix in WEB_FOOTER_NOISE_PREFIXES):
+        return None
+    if value in {"首页", "隐私", "评论", "全部", "推荐阅读", "热门精选", "网站地图"}:
+        return None
+    return value
+
+
+def trim_rendered_paragraphs(paragraphs: list[str]) -> list[str]:
+    cleaned: list[str] = []
+    started = False
+    for paragraph in paragraphs:
+        value = clean_rendered_paragraph(paragraph)
+        if value is None:
+            if started and any(paragraph.startswith(prefix) for prefix in WEB_FOOTER_NOISE_PREFIXES):
+                break
+            continue
+        started = True
+        cleaned.append(value)
+    return cleaned
+
+
+def choose_rendered_title(paragraphs: list[str], fallback: str | None = None) -> str | None:
+    for paragraph in paragraphs[:12]:
+        candidate = clean_rendered_paragraph(paragraph)
+        if not candidate:
+            continue
+        candidate = re.sub(r"\s*[\|｜]\s*", "｜", candidate)
+        candidate = re.sub(r"\s+腾讯研究院\s+\d{4}-\d{2}-\d{2}.*$", "", candidate).strip()
+        candidate = re.sub(r"\s+\d{4}[.-]\d{1,2}[.-]\d{1,2}.*$", "", candidate).strip()
+        candidate = re.sub(r"\s+\+订阅.*$", "", candidate).strip()
+        if candidate.endswith(" 腾讯研究院"):
+            candidate = candidate[: -len(" 腾讯研究院")].strip()
+        candidate = re.sub(r"\s+", " ", candidate).strip()
+        if len(candidate) >= 6:
+            return candidate[:120]
+    return fallback
 
 
 def extract_frontmatter(source_text: str) -> dict[str, str]:
@@ -415,13 +494,19 @@ def parse_plain_text(source_text: str, meta: dict[str, Any], source_kind: str) -
     paragraphs = split_text_paragraphs(body_text)
     if source_kind == "markdown":
         paragraphs = [paragraph for paragraph in (clean_markdown_text(paragraph) for paragraph in paragraphs) if paragraph]
+    if source_kind in {"text", "markdown"}:
+        paragraphs = trim_rendered_paragraphs(paragraphs)
     title = frontmatter.get("title")
     if not title:
-        for paragraph in paragraphs[:8]:
-            candidate = paragraph.lstrip("#").strip()
-            if candidate:
-                title = candidate[:120]
-                break
+        rendered_title = choose_rendered_title(paragraphs)
+        if rendered_title:
+            title = rendered_title
+        else:
+            for paragraph in paragraphs[:8]:
+                candidate = paragraph.lstrip("#").strip()
+                if candidate:
+                    title = candidate[:120]
+                    break
     author = frontmatter.get("author")
     date_published = frontmatter.get("date") or frontmatter.get("published") or frontmatter.get("date_published")
     description = frontmatter.get("description")
