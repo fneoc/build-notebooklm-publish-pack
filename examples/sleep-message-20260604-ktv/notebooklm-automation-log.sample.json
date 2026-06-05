@@ -1,0 +1,62 @@
+{
+  "status": "complete",
+  "browser_surface": "Chrome preferred",
+  "notebook_url": "<redacted NotebookLM Chinese notebook URL>",
+  "english_notebook_url": "<redacted NotebookLM English notebook URL>",
+  "notebook_title": "Bedtime News: Order and the Pause Button",
+  "expected_visible_source_count": 1,
+  "visible_source_count": 1,
+  "uploaded_files": [
+    "睡前消息-高考怕KTV-20260604.pdf"
+  ],
+  "generation": {
+    "video_zh": "downloaded_verified",
+    "video_en": "downloaded_verified",
+    "infographic": "downloaded_verified"
+  },
+  "downloads": [
+    {
+      "asset": "infographic",
+      "card_title": "2026年6月4日新闻快讯",
+      "original_download": "<redacted local Downloads path>",
+      "copied_to": [
+        "睡前消息-高考怕KTV-20260604-infographic-horizontal-notebooklm.png",
+        "睡前消息-高考怕KTV-20260604-infographic-horizontal.png"
+      ],
+      "width": 2752,
+      "height": 1536,
+      "verified_with": "Pillow"
+    },
+    {
+      "asset": "video_zh",
+      "card_title": "暂停键：谁在踩下刹车？",
+      "original_download": "<redacted local Downloads path>",
+      "copied_to": [
+        "睡前消息-高考怕KTV-20260604-video-zh-notebooklm.mp4"
+      ],
+      "width": 1280,
+      "height": 720,
+      "duration_seconds": 448.261224,
+      "video_codec": "h264",
+      "audio_codec": "aac",
+      "verified_with": "ffprobe"
+    },
+    {
+      "asset": "video_en",
+      "card_title": "The Great Societal Pause",
+      "original_download": "<redacted local Downloads path>",
+      "copied_to": [
+        "睡前消息-高考怕KTV-20260604-video-en-notebooklm.mp4"
+      ],
+      "width": 1280,
+      "height": 720,
+      "duration_seconds": 446.682268,
+      "video_codec": "h264",
+      "audio_codec": "aac",
+      "verified_with": "ffprobe"
+    }
+  ],
+  "blockers": [],
+  "next_automation_action": "None. Chinese video, English video, and NotebookLM infographic are downloaded and verified."
+}
+

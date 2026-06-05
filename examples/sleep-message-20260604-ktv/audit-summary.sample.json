@@ -1,0 +1,80 @@
+{
+  "status": "complete",
+  "file_count": 38,
+  "missing_categories": [],
+  "missing_expected_terms": [],
+  "source_count_mismatch": null,
+  "missing_file_roles": [],
+  "official_notebooklm": {
+    "video_zh": {
+      "status": "verified",
+      "candidates": [
+        "睡前消息-高考怕KTV-20260604-video-zh-notebooklm.mp4"
+      ],
+      "note_evidence": {
+        "positive_marker_found": true,
+        "fallback_marker_found": false
+      }
+    },
+    "video_en": {
+      "status": "verified",
+      "candidates": [
+        "睡前消息-高考怕KTV-20260604-video-en-notebooklm.mp4"
+      ],
+      "note_evidence": {
+        "positive_marker_found": true,
+        "fallback_marker_found": false
+      }
+    },
+    "infographic": {
+      "status": "verified",
+      "candidates": [
+        "睡前消息-高考怕KTV-20260604-infographic-horizontal-notebooklm.png"
+      ],
+      "note_evidence": {
+        "positive_marker_found": true,
+        "fallback_marker_found": false
+      }
+    }
+  },
+  "media_errors": [],
+  "images": {
+    "睡前消息-高考怕KTV-20260604-infographic-horizontal-notebooklm.png": {
+      "width": 2752,
+      "height": 1536,
+      "aspect_ratio": 1.7917
+    },
+    "睡前消息-高考怕KTV-20260604-infographic-rich-4x3-mask.png": {
+      "width": 2752,
+      "height": 2064,
+      "aspect_ratio": 1.3333
+    },
+    "睡前消息-高考怕KTV-20260604-infographic-vertical-3x4-mask.png": {
+      "width": 2752,
+      "height": 3669,
+      "aspect_ratio": 0.7501
+    },
+    "睡前消息-高考怕KTV-20260604-infographic-vertical.png": {
+      "width": 1080,
+      "height": 1350,
+      "aspect_ratio": 0.8
+    }
+  },
+  "videos": {
+    "睡前消息-高考怕KTV-20260604-video-en-notebooklm.mp4": {
+      "width": 1280,
+      "height": 720,
+      "duration": "446.208333"
+    },
+    "睡前消息-高考怕KTV-20260604-video-zh-notebooklm.mp4": {
+      "width": 1280,
+      "height": 720,
+      "duration": "447.750000"
+    }
+  },
+  "notes": {
+    "pillow_available": true,
+    "ffprobe_available": true
+  }
+}
+
